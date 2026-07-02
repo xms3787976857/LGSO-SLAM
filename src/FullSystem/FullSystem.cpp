@@ -2690,6 +2690,24 @@ void FullSystem::addKeyFrameToLoopClosing(int kfId, FrameHessian* fh) {
 }
 
 void FullSystem::finalizeLoopClosing() {
-    if (lcBridge) lcBridge->finalize();
+    if (!lcBridge) return;
+
+    // Run global pose graph optimization
+    lcBridge->finalize();
+
+    // Sync optimized poses back to DSO FrameShells
+    for (FrameShell* s : allFrameHistory) {
+        double optiPose[16];
+        if (lcBridge->getOptimizedPose(s->incoming_id, optiPose)) {
+            // Convert 4x4 matrix back to SE3
+            Eigen::Matrix3d R;
+            R << optiPose[0], optiPose[1], optiPose[2],
+                 optiPose[4], optiPose[5], optiPose[6],
+                 optiPose[8], optiPose[9], optiPose[10];
+            Eigen::Vector3d t(optiPose[3], optiPose[7], optiPose[11]);
+            s->camToWorld = Sophus::SE3d(R, t);
+        }
+    }
+    printf("Loop closing: synced %d optimized poses\n", lcBridge->numKeyFrames());
 }
 }
