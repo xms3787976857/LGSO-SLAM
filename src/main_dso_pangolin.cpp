@@ -55,7 +55,7 @@
 #include "IOWrapper/Pangolin/PangolinDSOViewer.h"
 #include "IOWrapper/OutputWrapper/SampleOutputWrapper.h"
 
-#include <rerun.hpp>
+#include "rerun_stub.hpp"
 #include <sophus/se3.hpp>
 #include <vector>
 #include <string>

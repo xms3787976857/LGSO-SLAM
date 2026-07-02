@@ -42,10 +42,7 @@ find_package(Glog REQUIRED)
 find_package(OpenMP REQUIRED)
 
 
-include(FetchContent)
-FetchContent_Declare(rerun_sdk URL
-    https://github.com/rerun-io/rerun/releases/latest/download/rerun_cpp_sdk.zip)
-FetchContent_MakeAvailable(rerun_sdk)
+# Use pre-built rerun SDK (linux x64)
 
 # LDSO loop closing third-party
 add_subdirectory(thirdparty/DBoW3)
@@ -71,6 +68,8 @@ add_library(loopclosing SHARED
   src/loopclosing/ldso/LoopClosing.cpp src/loopclosing/ldso/FeatureDetector.cpp
   src/loopclosing/ldso/FeatureMatcher.cpp src/loopclosing/ldso/PR.cpp
   src/loopclosing/ldso/FrameHessian.cpp src/loopclosing/ldso/PointHessian.cpp
+  src/loopclosing/ldso/GlobalCalib.cpp
+  src/loopclosing/ldso/CoarseTracker.cpp
 )
 target_include_directories(loopclosing PRIVATE
   ${PROJECT_SOURCE_DIR}/src/loopclosing/ldso/
@@ -79,7 +78,7 @@ target_include_directories(loopclosing PRIVATE
   ${EIGEN3_INCLUDE_DIR} ${OpenCV_INCLUDE_DIRS} ${GLOG_INCLUDE_DIRS}
   ${PROJECT_SOURCE_DIR}/src/loopclosing/
 )
-target_link_libraries(loopclosing g2o DBoW3 ${GLOG_LIBRARY} ${OpenCV_LIBS})
+target_link_libraries(loopclosing g2o DBoW3 glog ${OpenCV_LIBS})
 
 # Sources files
 set(dso_SOURCE_FILES
@@ -109,8 +108,6 @@ include_directories(
 	${PROJECT_SOURCE_DIR}/thirdparty/
   ${PROJECT_SOURCE_DIR}/thirdparty/Sophus
   ${PROJECT_SOURCE_DIR}/thirdparty/sse2neon
-  ${PROJECT_SOURCE_DIR}/rerun_cpp_sdk/rerun_cpp_sdk/src
-  ${PROJECT_SOURCE_DIR}/rerun_cpp_sdk/rerun_cpp_sdk
   ${EIGEN3_INCLUDE_DIR}
   ${OPENGL_INCLUDE_DIR}
   ${PROJECT_SOURCE_DIR}
@@ -295,7 +292,7 @@ target_link_libraries(gaussian_viewer
 # compile main library.
 include_directories( ${CSPARSE_INCLUDE_DIR} ${CHOLMOD_INCLUDE_DIR}) 
 add_library(dso ${dso_SOURCE_FILES} ${dso_opencv_SOURCE_FILES} ${dso_pangolin_SOURCE_FILES})
-target_link_libraries(dso ${TORCH_LIBRARIES} g2o DBoW3 ${GLOG_LIBRARY} ${OpenCV_LIBS} loopclosing)
+target_link_libraries(dso ${TORCH_LIBRARIES} g2o DBoW3 glog ${OpenCV_LIBS} loopclosing)
 
 #set_property( TARGET dso APPEND_STRING PROPERTY COMPILE_FLAGS -Wall )
 #set_property(TARGET dso PROPERTY CXX_STANDARD 17)
@@ -310,8 +307,7 @@ endif()
 if (OpenCV_FOUND AND Pangolin_FOUND)
 	message("--- compiling dso_dataset.")
 	add_executable(dso_dataset ${PROJECT_SOURCE_DIR}/src/main_dso_pangolin.cpp )
-    target_link_libraries(dso_dataset PRIVATE dso boost_system cxsparse ${BOOST_THREAD_LIBRARY} ${LIBZIP_LIBRARY} ${Pangolin_LIBRARIES} ${OpenCV_LIBS} 
-                            ${TORCH_LIBRARIES} gaussian_mapper rerun_sdk gaussian_viewer ${GLEW_LIBRARIES} g2o DBoW3 ${GLOG_LIBRARY})
+	    target_link_libraries(dso_dataset PRIVATE dso boost_system cxsparse ${BOOST_THREAD_LIBRARY} ${LIBZIP_LIBRARY} ${Pangolin_LIBRARIES} ${OpenCV_LIBS} ${TORCH_LIBRARIES} gaussian_mapper gaussian_viewer ${GLEW_LIBRARIES} g2o DBoW3 glog loopclosing)
 
 else()
 	message("--- not building dso_dataset, since either don't have openCV or Pangolin.")
